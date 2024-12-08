@@ -124,9 +124,11 @@ void main() {
       final mockEventService = locator<EventService>();
       final int prevlength = model.volunteers.length;
       when(
-        mockEventService.removeVolunteerFromGroup({
-          'id': 'volunteer1',
-        }),
+        mockEventService.removeVolunteerFromGroup(
+          {
+            'id': 'volunteer1',
+          },
+        ),
       ).thenThrow(Exception('Failed to remove volunteer'));
       try {
         await model.removeVolunteerFromGroup("volunteer1");
@@ -161,8 +163,11 @@ void main() {
     test("Test deleteVolunteerGroup failure", () async {
       final mockEventService = locator<EventService>();
 
-      when(mockEventService.removeVolunteerGroup({"id": "group1"}))
-          .thenThrow(Exception("Failed to delete group"));
+      when(
+        mockEventService.removeVolunteerGroup(
+          {"id": "group1"},
+        ),
+      ).thenThrow(Exception("Failed to delete group"));
       try {
         await model.deleteVolunteerGroup("group1");
       } catch (e) {
@@ -211,7 +216,10 @@ void main() {
     test('Test updateVolunteerGroup failure', () async {
       final mockEventService = locator<EventService>();
       final group = EventVolunteerGroup(
-          id: "group1", name: "Old Name", volunteersRequired: -1);
+        id: "group1",
+        name: "Old Name",
+        volunteersRequired: -1,
+      );
       when(
         mockEventService.updateVolunteerGroup({
           'id': group.id,
