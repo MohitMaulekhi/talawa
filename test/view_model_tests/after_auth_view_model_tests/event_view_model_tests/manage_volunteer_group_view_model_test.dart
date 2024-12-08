@@ -10,6 +10,7 @@ import '../../../helpers/test_helpers.dart';
 import '../../../helpers/test_locator.dart';
 
 void main() {
+  late ManageVolunteerGroupViewModel model;
   setUpAll(() {
     TestWidgetsFlutterBinding.ensureInitialized();
     testSetupLocator();
@@ -21,7 +22,9 @@ void main() {
   });
 
   group('ManageVolunteerGroupViewModel Tests', () {
-    final model = ManageVolunteerGroupViewModel();
+    setUp(() {
+      model = ManageVolunteerGroupViewModel();
+    });
 
     test("Test initialization", () async {
       final Event event = Event(id: "1");
@@ -32,6 +35,9 @@ void main() {
 
       expect(model.event.id, "1");
       expect(model.volunteers, isEmpty);
+    });
+    test("Test isFetchingVolunteers getter", () async {
+      expect(model.isFetchingVolunteers, isFalse);
     });
 
     test("Test getCurrentOrgUsersList success", () async {
@@ -70,6 +76,23 @@ void main() {
       expect(model.volunteers.first.id, "volunteer1");
     });
 
+    test("Test addVolunteerToGroup Failure", () async {
+      final mockEventService = locator<EventService>();
+      when(
+        mockEventService.addVolunteerToGroup({
+          'eventId': "1",
+          'userId': "volunteer1",
+          'groupId': "group1",
+        }),
+      ).thenThrow(Exception('Failed to add volunteer'));
+      try {
+        await model.addVolunteerToGroup("volunteer1", "1", "group1");
+      } catch (e) {
+        expect(e.toString(), "Failed to add volunteer");
+      }
+      expect(model.volunteers.length, 0);
+    });
+
     test("Test removeVolunteerFromGroup success", () async {
       final mockEventService = locator<EventService>();
       final mockResult = {
@@ -97,6 +120,21 @@ void main() {
       expect(model.volunteers.isEmpty, true);
     });
 
+    test("Test removeVolunteerFromGroup failure", () async {
+      final mockEventService = locator<EventService>();
+      final int prevlength = model.volunteers.length;
+      when(
+        mockEventService.removeVolunteerFromGroup({
+          'id': 'volunteer1',
+        }),
+      ).thenThrow(Exception('Failed to remove volunteer'));
+      try {
+        await model.removeVolunteerFromGroup("volunteer1");
+      } catch (e) {
+        expect(e.toString(), "Failed to add volunteer");
+      }
+      expect(model.volunteers.length, prevlength);
+    });
     test("Test deleteVolunteerGroup success", () async {
       final mockEventService = locator<EventService>();
       final mockResult = {
@@ -116,6 +154,20 @@ void main() {
       );
 
       await model.deleteVolunteerGroup("group1");
+
+      // Assuming the method should notify listeners
+      verify(mockEventService.removeVolunteerGroup({"id": "group1"})).called(1);
+    });
+    test("Test deleteVolunteerGroup failure", () async {
+      final mockEventService = locator<EventService>();
+
+      when(mockEventService.removeVolunteerGroup({"id": "group1"}))
+          .thenThrow(Exception("Failed to delete group"));
+      try {
+        await model.deleteVolunteerGroup("group1");
+      } catch (e) {
+        expect(e.toString(), "Failed to delete group");
+      }
 
       // Assuming the method should notify listeners
       verify(mockEventService.removeVolunteerGroup({"id": "group1"})).called(1);
@@ -154,6 +206,29 @@ void main() {
 
       expect(group.name, "Updated Group");
       expect(group.volunteersRequired, 20);
+    });
+
+    test('Test updateVolunteerGroup failure', () async {
+      final mockEventService = locator<EventService>();
+      final group = EventVolunteerGroup(
+          id: "group1", name: "Old Name", volunteersRequired: -1);
+      when(
+        mockEventService.updateVolunteerGroup({
+          'id': group.id,
+          'data': {
+            'eventId': "1",
+            'name': "Updated Group",
+            'volunteersRequired': 20,
+          },
+        }),
+      ).thenThrow(Exception('Failed to update group'));
+      try {
+        await model.updateVolunteerGroup(group, "1", "Updated Group", 20);
+      } catch (e) {
+        expect(e.toString(), contains('Failed to update group'));
+      }
+      expect(group.name, "Old Name");
+      expect(group.volunteersRequired, -1);
     });
   });
 }
